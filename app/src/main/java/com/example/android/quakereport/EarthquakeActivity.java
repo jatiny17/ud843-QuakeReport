@@ -18,6 +18,8 @@ package com.example.android.quakereport;
 import android.app.LoaderManager;
 import android.content.Intent;
 import android.content.Loader;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -59,6 +61,7 @@ public class EarthquakeActivity extends AppCompatActivity implements LoaderManag
     private TextView emptyView;
     private SwipeRefreshLayout swipeRefreshLayout;
     private ProgressBar progressBar;
+    ConnectivityManager connectivityManager;
     private String requestURL = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&eventtype=earthquake&limit=100&orderby=time";
 
     @Override
@@ -85,15 +88,45 @@ public class EarthquakeActivity extends AppCompatActivity implements LoaderManag
             }
         });
 
+        connectivityManager = (ConnectivityManager)getSystemService(EarthquakeActivity.CONNECTIVITY_SERVICE);
+
+        if(connectivityManager.getNetworkInfo(0).getState() == NetworkInfo.State.CONNECTING ||
+                connectivityManager.getNetworkInfo(0).getState() == NetworkInfo.State.CONNECTED ||
+                connectivityManager.getNetworkInfo(1).getState() == NetworkInfo.State.CONNECTING ||
+                connectivityManager.getNetworkInfo(1).getState() == NetworkInfo.State.CONNECTED ) {
+
+            getLoaderManager().initLoader(0,null,EarthquakeActivity.this).forceLoad();
+
+        }
+
+        else {
+            adapter.clear();
+            progressBar.setVisibility(View.GONE);
+            emptyView.setText("No Internet :(");
+        }
+
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                getLoaderManager().initLoader(0,null,EarthquakeActivity.this).forceLoad();
-                swipeRefreshLayout.setRefreshing(false);
+                if(connectivityManager.getNetworkInfo(0).getState() == NetworkInfo.State.CONNECTING ||
+                        connectivityManager.getNetworkInfo(0).getState() == NetworkInfo.State.CONNECTED ||
+                        connectivityManager.getNetworkInfo(1).getState() == NetworkInfo.State.CONNECTING ||
+                        connectivityManager.getNetworkInfo(1).getState() == NetworkInfo.State.CONNECTED ) {
+
+                    getLoaderManager().initLoader(0,null,EarthquakeActivity.this).forceLoad();
+                    swipeRefreshLayout.setRefreshing(false);
+                }
+
+                else {
+                    adapter.clear();
+                    progressBar.setVisibility(View.GONE);
+                    emptyView.setText("No Internet :(");
+                    swipeRefreshLayout.setRefreshing(false);
+
+                }
             }
         });
 
-        getLoaderManager().initLoader(0,null,EarthquakeActivity.this).forceLoad();
     }
 
     @Override
