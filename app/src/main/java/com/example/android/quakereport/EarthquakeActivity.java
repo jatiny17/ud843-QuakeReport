@@ -61,7 +61,7 @@ public class EarthquakeActivity extends AppCompatActivity implements LoaderManag
     private TextView emptyView;
     private SwipeRefreshLayout swipeRefreshLayout;
     private ProgressBar progressBar;
-    ConnectivityManager connectivityManager;
+    private ConnectivityManager connectivityManager;
     private String requestURL = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&eventtype=earthquake&limit=100&orderby=time";
 
     @Override
