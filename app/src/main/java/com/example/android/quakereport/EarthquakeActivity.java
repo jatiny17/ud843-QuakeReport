@@ -18,19 +18,25 @@ package com.example.android.quakereport;
 import android.app.LoaderManager;
 import android.content.Intent;
 import android.content.Loader;
+import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -62,7 +68,30 @@ public class EarthquakeActivity extends AppCompatActivity implements LoaderManag
     private SwipeRefreshLayout swipeRefreshLayout;
     private ProgressBar progressBar;
     private ConnectivityManager connectivityManager;
-    private String requestURL = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&eventtype=earthquake&limit=100&orderby=time";
+    private NetworkInfo networkInfo;
+    private String BASE_URL = "https://earthquake.usgs.gov/fdsnws/event/1/query?";
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = getMenuInflater();
+        menuInflater.inflate(R.menu.setting_menu,menu);
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch(item.getItemId()) {
+
+            case R.id.action_settings :
+                Intent intent = new Intent(EarthquakeActivity.this,UserPreferances.class);
+                startActivity(intent);
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,14 +118,10 @@ public class EarthquakeActivity extends AppCompatActivity implements LoaderManag
         });
 
         connectivityManager = (ConnectivityManager)getSystemService(EarthquakeActivity.CONNECTIVITY_SERVICE);
+        networkInfo = connectivityManager.getActiveNetworkInfo();
 
-        if(connectivityManager.getNetworkInfo(0).getState() == NetworkInfo.State.CONNECTING ||
-                connectivityManager.getNetworkInfo(0).getState() == NetworkInfo.State.CONNECTED ||
-                connectivityManager.getNetworkInfo(1).getState() == NetworkInfo.State.CONNECTING ||
-                connectivityManager.getNetworkInfo(1).getState() == NetworkInfo.State.CONNECTED ) {
-
+        if(networkInfo != null && networkInfo.isConnectedOrConnecting()){
             getLoaderManager().initLoader(0,null,EarthquakeActivity.this).forceLoad();
-
         }
 
         else {
@@ -108,11 +133,9 @@ public class EarthquakeActivity extends AppCompatActivity implements LoaderManag
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                if(connectivityManager.getNetworkInfo(0).getState() == NetworkInfo.State.CONNECTING ||
-                        connectivityManager.getNetworkInfo(0).getState() == NetworkInfo.State.CONNECTED ||
-                        connectivityManager.getNetworkInfo(1).getState() == NetworkInfo.State.CONNECTING ||
-                        connectivityManager.getNetworkInfo(1).getState() == NetworkInfo.State.CONNECTED ) {
+                networkInfo = connectivityManager.getActiveNetworkInfo();
 
+                if(networkInfo != null && networkInfo.isConnectedOrConnecting()) {
                     getLoaderManager().initLoader(0,null,EarthquakeActivity.this).forceLoad();
                     swipeRefreshLayout.setRefreshing(false);
                 }
@@ -122,7 +145,6 @@ public class EarthquakeActivity extends AppCompatActivity implements LoaderManag
                     progressBar.setVisibility(View.GONE);
                     emptyView.setText("No Internet :(");
                     swipeRefreshLayout.setRefreshing(false);
-
                 }
             }
         });
@@ -130,8 +152,23 @@ public class EarthquakeActivity extends AppCompatActivity implements LoaderManag
     }
 
     @Override
-    public Loader<ArrayList<Earthquake>> onCreateLoader(int i, Bundle bundle) {
-        return new EarthquakeLoader(this, requestURL);
+    public Loader< ArrayList<Earthquake> > onCreateLoader(int i, Bundle bundle) {
+
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        String filter = sharedPreferences.getString("min_mag","6");
+
+
+        Uri uri = Uri.parse(BASE_URL)
+                .buildUpon()
+                .appendQueryParameter("format","geojson")
+                .appendQueryParameter("eventtype","earthquake")
+                .appendQueryParameter("limit","100")
+                .appendQueryParameter("orderby","time")
+                .appendQueryParameter("minmagnitude",filter)
+                .build();
+
+        Log.v("URL",uri.toString());
+        return new EarthquakeLoader(this, uri.toString());
     }
 
     @Override

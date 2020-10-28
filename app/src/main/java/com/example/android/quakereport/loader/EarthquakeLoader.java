@@ -26,7 +26,6 @@ public class EarthquakeLoader extends AsyncTaskLoader <ArrayList <Earthquake> > 
 
     public EarthquakeLoader(Context context, String stringURL) {
         super(context);
-
         this.stringURL = stringURL;
     }
 
@@ -34,7 +33,6 @@ public class EarthquakeLoader extends AsyncTaskLoader <ArrayList <Earthquake> > 
     public ArrayList<Earthquake> loadInBackground() {
 
         URL url = getURL(stringURL);
-
         ArrayList<Earthquake> arrayList = null;
 
         try {
